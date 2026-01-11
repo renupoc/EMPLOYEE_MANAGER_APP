@@ -1,0 +1,102 @@
+package com.example.attendance.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(
+    name = "employees",
+    uniqueConstraints = @UniqueConstraint(columnNames = "email")
+)
+public class Employee {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // ✅ map DB columns correctly
+    
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    private String email;
+    private String password;
+    private String department;
+    private String role; // ADMIN / EMPLOYEE
+
+    // ✅ computed field (NOT stored in DB)
+    @Column(name = "full_name")
+    private String fullName;
+
+    // ---------- getters & setters ----------
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public void setFullName(String fullName) {   // ✅ THIS FIXES THE ERROR
+        this.fullName = fullName;
+    }
+
+    // ✅ full name = first + last
+    public String getFullName() {
+        String fn = firstName != null ? firstName : "";
+        String ln = lastName != null ? lastName : "";
+        return (fn + " " + ln).trim();
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    // ❌ do NOT expose password in UI (later improvement)
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+}

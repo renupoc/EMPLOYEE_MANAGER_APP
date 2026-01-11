@@ -1,0 +1,65 @@
+name: CI-CD Employee Availability App
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/employee-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/employee-frontend
+
+jobs:
+
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # ---------- BACKEND ----------
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Build Spring Boot
+      run: |
+        cd backend
+        mvn clean package -DskipTests
+
+    - name: Login to GHCR
+      run: |
+        echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Build & Push Backend Image
+      run: |
+        docker build -t $BACKEND_IMAGE:latest backend
+        docker push $BACKEND_IMAGE:latest
+
+    # ---------- FRONTEND ----------
+    - name: Build & Push Frontend Image
+      run: |
+        docker build -t $FRONTEND_IMAGE:latest frontend
+        docker push $FRONTEND_IMAGE:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GHCR_TOKEN }}
+          docker pull $BACKEND_IMAGE:latest
+          docker pull $FRONTEND_IMAGE:latest
+          docker compose down
+          docker compose up -d
