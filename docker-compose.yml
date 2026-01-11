@@ -1,16 +1,41 @@
-version: "3.8"
-
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_DATABASE: employee_attendance_db
+      MYSQL_USER: attendance_user
+      MYSQL_PASSWORD: attendance123
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: always
+
   backend:
     image: ghcr.io/renupoc/employee-backend:latest
+    container_name: backend
     ports:
       - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_attendance_db
+      SPRING_DATASOURCE_USERNAME: attendance_user
+      SPRING_DATASOURCE_PASSWORD: attendance123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+    depends_on:
+      - mysql
     restart: always
 
   frontend:
     image: ghcr.io/renupoc/employee-frontend:latest
+    container_name: frontend
     ports:
       - "80:80"
     depends_on:
       - backend
     restart: always
+
+volumes:
+  mysql_data:
