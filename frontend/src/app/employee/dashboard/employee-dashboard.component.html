@@ -3,31 +3,12 @@
 
     <h2 class="title">Employee Dashboard</h2>
 
-    <!-- ✅ SHOW ONLY AFTER USER LOADS -->
+    <!-- ✅ USER DETAILS -->
     <ng-container *ngIf="user as u">
 
-      <div class="info-row">
-        <strong>Name:</strong> {{ u.fullName }}
-      </div>
-
-      <div class="info-row">
-        <strong>Email:</strong> {{ u.email }}
-      </div>
-
-      <div class="info-row">
-        <strong>Department:</strong> {{ u.department }}
-      </div>
-
-      <!-- Department -->
-      <label>Change Department</label>
-      <select [(ngModel)]="selectedDepartment" name="department">
-        <option value="">Select department</option>
-        <option value="IDIS">IDIS</option>
-        <option value="VEDC">VEDC</option>
-        <option value="EMRI">EMRI</option>
-        <option value="GUSS">GUSS</option>
-        <option value="EMSS">EMSS</option>
-      </select>
+      <div class="info-row"><strong>Name:</strong> {{ u.fullName }}</div>
+      <div class="info-row"><strong>Email:</strong> {{ u.email }}</div>
+      <div class="info-row"><strong>Department:</strong> {{ u.department }}</div>
 
       <!-- Month & Year -->
       <div class="row">
@@ -45,53 +26,86 @@
           <label>Year</label>
           <select [(ngModel)]="selectedYear" (change)="onMonthOrYearChange()">
             <option value="">Select Year</option>
-            <option *ngFor="let y of years" [value]="y">
-              {{ y }}
-            </option>
+            <option *ngFor="let y of years" [value]="y">{{ y }}</option>
           </select>
         </div>
       </div>
 
-      <!-- Days -->
+      <!-- Month Info -->
       <div class="form-group">
         <label>Days in Selected Month</label>
         <input type="number" [value]="daysInMonth" disabled />
       </div>
-        <div class="form-group">
-            <label>Working Days (Excluding Sat & Sun)</label>
-            <input type="number" [value]="weekdaysInMonth" disabled />
-        </div>
 
+      <div class="form-group">
+        <label>Working Days (Excluding Sat & Sun)</label>
+        <input type="number" [value]="weekdaysInMonth" disabled />
+      </div>
 
-        <div class="form-group">
-        <label>Working Days</label>
-        <input
-          type="number"
-          [(ngModel)]="workingDays"
-          (input)="validateWorkingDays()"
-        />
-            <small *ngIf="showError" style="color:red">
-                Working days cannot exceed {{ weekdaysInMonth }} (excluding weekends)
-            </small>
+      <!-- ✅ CALENDAR -->
+      <h3 class="calendar-title">📅 Select Working Days</h3>
 
-        </div>
+<div class="calendar-container" *ngIf="calendarDays.length">
+
+  <!-- Weekday Header -->
+  <div class="calendar-header">
+    <div>Mon</div>
+    <div>Tue</div>
+    <div>Wed</div>
+    <div>Thu</div>
+    <div>Fri</div>
+    <div class="weekend-header">Sat</div>
+    <div class="weekend-header">Sun</div>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="calendar-grid">
+    <div
+      *ngFor="let day of calendarDays"
+      class="calendar-day"
+      [class.weekend]="day.isWeekend"
+      [class.selected]="day.isSelected"
+      (click)="toggleDay(day)"
+    >
+      {{ day.day }}
+    </div>
+  </div>
+
+</div>
+
+<h3 class="calendar-title">🗂 Weekly Summary</h3>
+
+<div class="week-list">
+  <div class="week-card" *ngFor="let w of weeks">
+    <div class="week-header">
+      Week {{ w.weekNumber }}
+      <span class="week-range">
+        ({{ w.start | date:'dd MMM' }} – {{ w.end | date:'dd MMM' }})
+      </span>
+    </div>
+
+    <div class="week-body">
+      <div>Total Working Days: <b>{{ w.totalWorkingDays }}</b></div>
+      <div>Selected Days: <b>{{ w.selectedDays }}</b></div>
+    </div>
+  </div>
+</div>
+
+      <!-- Monthly Total -->
+      <div class="form-group">
+        <label>Worked Days (Month)</label>
+        <input type="number" [value]="workedDays" disabled />
+      </div>
 
       <!-- Buttons -->
-      <button
-        class="btn primary"
-        [disabled]="!isFormValid()"
-        (click)="submit()"
-      >
+      <button class="btn primary" [disabled]="!isFormValid()" (click)="submit()">
         Submit
       </button>
 
-      <button class="btn danger" (click)="logout()">
-        Logout
-      </button>
+      <button class="btn danger" (click)="logout()">Logout</button>
 
     </ng-container>
 
-    <!-- Optional loading text -->
     <div *ngIf="!user" class="loading">
       Loading employee details...
     </div>

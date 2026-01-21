@@ -2,7 +2,22 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AttendanceService } from '../../core/services/attendance.service';
-import {EmployeeService} from "../../core/services/employee.service";
+import { EmployeeService } from '../../core/services/employee.service';
+
+interface CalendarDay {
+  date: Date;
+  day: number;
+  isWeekend: boolean;
+  isSelected: boolean;
+}
+
+interface WeekSummary {
+  weekNumber: number;
+  start: Date;
+  end: Date;
+  totalWorkingDays: number;
+  selectedDays: number;
+}
 
 @Component({
   selector: 'app-employee-dashboard',
@@ -13,10 +28,7 @@ import {EmployeeService} from "../../core/services/employee.service";
 })
 export class EmployeeDashboardComponent implements OnInit {
 
-  user: any = {};
-
-  departments = ['VEDC', 'GUSS', 'EMSS'];
-  selectedDepartment = '';
+  user: any;
 
   months = [
     { label: 'January', value: 1 },
@@ -34,141 +46,238 @@ export class EmployeeDashboardComponent implements OnInit {
   ];
 
   years: number[] = [];
-  selectedMonth: number | '' = '';
-  selectedYear: number | '' = '';
+  weeks: WeekSummary[] = [];
+
+  // ✅ FIXED TYPES
+  selectedMonth: number | null = null;
+  selectedYear: number | null = null;
 
   daysInMonth = 0;
-  workingDays = 0;
-  showError = false;
-  weekdaysInMonth = 0; // ✅ excludes Sat & Sun
+  weekdaysInMonth = 0;
+  workedDays = 0;
 
+  calendarDays: CalendarDay[] = [];
 
   constructor(
-      private attendanceService: AttendanceService,
-      private employeeService: EmployeeService
+    private attendanceService: AttendanceService,
+    private employeeService: EmployeeService
   ) {}
-
 
   ngOnInit(): void {
     this.generateYears();
 
-    const state = history.state;
-
-    // 1️⃣ First priority: navigation state
-    if (state?.email) {
-      this.employeeService.getByEmail(state.email).subscribe({
-        next: (res: any) => {
-          this.user = res;
-          this.selectedDepartment = res.department;
-
-          // Cache user (without password)
-          const { password, ...cacheableUser } = res;
-          localStorage.setItem('loggedInUser', JSON.stringify(cacheableUser));
-        },
-        error: () => {
-          alert('Failed to load profile');
-          this.logout();
-        }
-      });
-      return;
-    }
-
-    // 2️⃣ Second priority: localStorage
     const storedUser = localStorage.getItem('loggedInUser');
     if (storedUser) {
       this.user = JSON.parse(storedUser);
-      console.log(this.user)
-      this.selectedDepartment = this.user.department;
       return;
     }
 
-    // 3️⃣ Only now → session expired
     alert('Session expired. Please login again.');
     this.logout();
   }
 
   generateYears() {
     const currentYear = new Date().getFullYear();
-    this.years = Array.from({ length: 100 }, (_, i) => currentYear - 5 + i);
+    this.years = Array.from({ length: 10 }, (_, i) => currentYear - 2 + i);
   }
 
   onMonthOrYearChange() {
-    if (this.selectedMonth && this.selectedYear) {
+    if (this.selectedMonth === null || this.selectedYear === null) return;
 
-      this.daysInMonth = new Date(
-          this.selectedYear,
-          this.selectedMonth,
-          0
-      ).getDate();
+    this.daysInMonth = new Date(
+      this.selectedYear,
+      this.selectedMonth,
+      0
+    ).getDate();
 
-      // ✅ NEW: weekdays only
-      this.weekdaysInMonth = this.calculateWeekdays(
-          this.selectedYear,
-          this.selectedMonth
+    this.weekdaysInMonth = this.calculateWeekdays(
+      this.selectedYear,
+      this.selectedMonth
+    );
+
+    this.generateCalendar();
+    this.generateWeeks();
+    this.workedDays = 0;
+
+    // ✅ LOAD SAVED DATES FROM DB
+this.attendanceService
+  .getSelectedDates(this.user.employeeId, this.selectedMonth, this.selectedYear)
+  .subscribe(savedDates => {
+    this.applySavedDates(savedDates);
+  });
+  }
+
+  generateWeeks() {
+  if (this.selectedMonth === null || this.selectedYear === null) return;
+
+  this.weeks = [];
+
+  const year = this.selectedYear;
+  const month = this.selectedMonth;
+  const totalDays = new Date(year, month, 0).getDate();
+
+  let weekNumber = 1;
+  let weekStartDay = 1;
+
+  while (weekStartDay <= totalDays) {
+    const startDate = new Date(year, month - 1, weekStartDay,  0, 0, 0);
+
+    let weekEndDay = weekStartDay;
+    let d = new Date(startDate);
+
+    // Week ends on Sunday OR month end
+    while (
+      d.getDay() !== 0 &&           // Sunday
+      weekEndDay < totalDays
+    ) {
+      weekEndDay++;
+      d = new Date(year, month - 1, weekEndDay);
+    }
+
+    const endDate = new Date(year, month - 1, weekEndDay,  23, 59, 59 );
+
+    // Count working days (Mon–Fri only)
+    let totalWorkingDays = 0;
+    for (let day = weekStartDay; day <= weekEndDay; day++) {
+      const temp = new Date(year, month - 1, day);
+      const dow = temp.getDay();
+      if (dow !== 0 && dow !== 6) {
+        totalWorkingDays++;
+      }
+    }
+
+    this.weeks.push({
+      weekNumber,
+      start: startDate,
+      end: endDate,
+      totalWorkingDays,
+      selectedDays: 0
+    });
+
+    weekNumber++;
+    weekStartDay = weekEndDay + 1;
+  }
+}
+
+applySavedDates(savedDates: string[]) {
+  const savedSet = new Set(savedDates);
+
+  this.calendarDays.forEach(day => {
+    if (day.day === 0) return; // skip empty cells
+
+    const y = day.date.getFullYear();
+    const m = String(day.date.getMonth() + 1).padStart(2, '0');
+    const d = String(day.date.getDate()).padStart(2, '0');
+    const localDate = `${y}-${m}-${d}`;
+    day.isSelected = savedSet.has(localDate);
+  });
+   // 🔁 Recalculate weekly & monthly counts
+  this.calculateWorkedDays();
+}
+
+  generateCalendar() {
+  if (this.selectedMonth === null || this.selectedYear === null) return;
+
+  this.calendarDays = [];
+
+  const firstDate = new Date(this.selectedYear, this.selectedMonth - 1, 1);
+  const totalDays = new Date(this.selectedYear, this.selectedMonth, 0).getDate();
+
+  // JS: 0=Sun → convert to Mon=0
+  let startOffset = firstDate.getDay() - 1;
+  if (startOffset < 0) startOffset = 6;
+
+  // Empty cells before first day
+  for (let i = 0; i < startOffset; i++) {
+    this.calendarDays.push({
+      date: new Date(),
+      day: 0,
+      isWeekend: true,
+      isSelected: false
+    });
+  }
+
+  // Actual days
+  for (let d = 1; d <= totalDays; d++) {
+    const date = new Date(this.selectedYear, this.selectedMonth - 1, d, 12, 0, 0);
+    const dayOfWeek = date.getDay();
+
+    this.calendarDays.push({
+      date,
+      day: d,
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+      isSelected: false
+    });
+  }
+}
+
+
+
+  toggleDay(day: CalendarDay) {
+    if (day.isWeekend) return;
+
+    day.isSelected = !day.isSelected;
+    this.calculateWorkedDays();
+  }
+
+  calculateWorkedDays() {
+  this.workedDays = 0;
+
+  // reset weekly counts
+  this.weeks.forEach(w => (w.selectedDays = 0));
+
+  this.calendarDays.forEach(day => {
+    if (day.isSelected && !day.isWeekend) {
+      this.workedDays++;
+
+      const week = this.weeks.find(w =>
+        day.date >= w.start && day.date <= w.end
       );
 
-      this.workingDays = 0;
-      this.showError = false;
+      if (week) {
+        week.selectedDays++;
+      }
     }
-  }
-
-
-  validateWorkingDays() {
-    if (this.workingDays > this.weekdaysInMonth) {
-      this.showError = true;
-      this.workingDays = this.weekdaysInMonth;
-    } else {
-      this.showError = false;
-    }
-  }
-
+  });
+}
 
   isFormValid() {
     return (
-        this.selectedDepartment &&
-        this.selectedMonth &&
-        this.selectedYear &&
-        this.workingDays > 0 &&
-        this.workingDays <= this.weekdaysInMonth
+      this.selectedMonth !== null &&
+      this.selectedYear !== null &&
+      this.workedDays > 0
     );
   }
 
+  submit() {
+    if (this.selectedMonth === null || this.selectedYear === null) return;
 
-  // ================================
-  // ✅ FIXED SUBMIT METHOD (BACKEND)
-  // ================================
- submit() {
+    const selectedDates = this.calendarDays
+      .filter(d => d.isSelected && !d.isWeekend)
+      .map(d => {
+        const y = d.date.getFullYear();
+        const m = String(d.date.getMonth() + 1).padStart(2, '0');
+        const day = String(d.date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+  });
 
-  if (!this.selectedMonth || !this.selectedYear) {
-    alert('Please select month and year');
-    return;
+    // ✅ BACKEND-COMPATIBLE PAYLOAD
+    const payload = {
+      month: this.selectedMonth,
+      year: this.selectedYear,
+      totalDays: this.daysInMonth,
+      totalWorkingDays: this.weekdaysInMonth,
+      workedDays: this.workedDays,
+      selectedDates
+    };
+
+    this.attendanceService
+      .submitAttendance(this.user.employeeId, payload)
+      .subscribe({
+        next: () => alert('Attendance submitted successfully'),
+        error: () => alert('Submit failed')
+      });
   }
-
-   const attendanceDate = new Date(this.selectedYear!, this.selectedMonth! - 1, 1);
-
-   const payload = {
-     month: this.selectedMonth,
-     year: this.selectedYear,
-     totalDays: this.daysInMonth,
-     totalWorkingDays: this.weekdaysInMonth,
-     workedDays: this.workingDays,
-     availabilityPercent: Math.round((this.workingDays / this.daysInMonth) * 100), // ✅ Integer
-     attendanceDate: attendanceDate.toISOString().split('T')[0],
-     status: 'SUBMITTED'
-   };
-
-  this.attendanceService
-    .submitAttendance(this.user.employeeId, payload)
-    .subscribe({
-      next: () => {
-        alert('Attendance submitted successfully');
-      },
-      error: err => {
-        console.error(err);
-        alert('Submit failed');
-      }
-    });
-}
 
   logout() {
     localStorage.removeItem('loggedInUser');
@@ -179,17 +288,10 @@ export class EmployeeDashboardComponent implements OnInit {
     let count = 0;
     const totalDays = new Date(year, month, 0).getDate();
 
-    for (let day = 1; day <= totalDays; day++) {
-      const date = new Date(year, month - 1, day);
-      const dayOfWeek = date.getDay(); // 0=Sun, 6=Sat
-
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        count++;
-      }
+    for (let d = 1; d <= totalDays; d++) {
+      const day = new Date(year, month - 1, d).getDay();
+      if (day !== 0 && day !== 6) count++;
     }
-
     return count;
   }
-
 }
-

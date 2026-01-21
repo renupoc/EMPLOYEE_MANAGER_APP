@@ -1,0 +1,19 @@
+# IntelliJ IDEA files
+.idea/
+
+# Maven build output
+backend/target/
+
+# Node & Angular files
+frontend/node_modules/
+frontend/.angular/
+
+# Compiled / generated files
+*.class
+*.jar
+*.war
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

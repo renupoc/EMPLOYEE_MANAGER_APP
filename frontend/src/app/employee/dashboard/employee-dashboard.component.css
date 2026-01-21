@@ -84,3 +84,101 @@ input:disabled {
 .btn.danger:hover {
   background: #b91c1c;
 }
+/* ===== Calendar ===== */
+
+.calendar-title {
+  margin-top: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.calendar-container {
+  margin-top: 10px;
+}
+
+/* Header */
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.weekend-header {
+  color: #9ca3af;
+}
+
+/* Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+/* Day cell */
+.calendar-day {
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+/* Disabled weekends */
+.calendar-day.weekend {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Selected day */
+.calendar-day.selected {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Empty placeholder cells */
+.calendar-day:empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+.week-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.week-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f9fafb;
+}
+
+.week-header {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.week-range {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.week-body {
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+}

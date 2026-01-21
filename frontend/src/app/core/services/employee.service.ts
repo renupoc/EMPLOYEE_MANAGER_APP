@@ -16,6 +16,7 @@ export class EmployeeService {
   getById(id: number): Observable<any> {
     return this.http.get(`${this.EMPLOYEE_API}/${id}`);
   }
+  
 
   // ❌ (Optional) remove if unused
   getByEmail(email: string): Observable<any> {

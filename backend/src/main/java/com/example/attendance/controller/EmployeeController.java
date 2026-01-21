@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/employees")
-@CrossOrigin
+@CrossOrigin(origins = "http://localhost:4200")
 public class EmployeeController {
 
     private final EmployeeRepository employeeRepository;
@@ -21,6 +21,8 @@ public class EmployeeController {
         return employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
     }
+
+    
 
     // ✅ UPDATE DEPARTMENT
     @PutMapping("/{id}/department")

@@ -1,0 +1,212 @@
+<div class="admin-container">
+
+  <!-- HEADER -->
+  <div class="admin-header">
+    <h2>Manager Dashboard</h2>
+
+    <div class="filters">
+      <select [(ngModel)]="selectedDepartment">
+        <option value="">All Departments</option>
+        <option *ngFor="let d of departments" [value]="d">
+          {{ d }}
+        </option>
+      </select>
+
+      <select [(ngModel)]="selectedMonth">
+        <option value="">All Months</option>
+        <option *ngFor="let m of months" [value]="m.value">
+          {{ m.label }}
+        </option>
+      </select>
+
+      <select [(ngModel)]="selectedYear">
+        <option value="">All Years</option>
+        <option *ngFor="let y of years" [value]="y">
+          {{ y }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- MAIN TABLE -->
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Month</th>
+        <th>Year</th>
+        <th>Department</th>
+        <th>Working Days</th>
+        <th>Availability %</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      <ng-container *ngFor="let emp of filteredEmployees()">
+
+        <!-- EMPLOYEE ROW -->
+        <tr>
+          <td>{{ emp.name }}</td>
+          <td>{{ emp.email }}</td>
+          <td>{{ getMonthName(emp.month) }}</td>
+          <td>{{ emp.year }}</td>
+
+          <!-- Department -->
+          <td>
+            <span *ngIf="editingEmployee !== emp">
+              {{ emp.department }}
+            </span>
+
+            <select
+              *ngIf="editingEmployee === emp"
+              [(ngModel)]="editModel.department">
+              <option *ngFor="let d of departments" [value]="d">
+                {{ d }}
+              </option>
+            </select>
+          </td>
+
+          <!-- Monthly Working Days -->
+          <td>
+            <span *ngIf="editingEmployee !== emp">
+              {{ emp.workedDays }} / {{ emp.totalWorkingDays }}
+              <small>({{ emp.totalDays }} days)</small>
+            </span>
+
+            <input
+              *ngIf="editingEmployee === emp"
+              type="number"
+              [(ngModel)]="editModel.workingDays"
+              [min]="0"
+              [max]="emp.totalWorkingDays">
+          </td>
+
+          <!-- Availability -->
+          <td>{{ availabilityPercent(emp) }}%</td>
+
+          <!-- ACTIONS -->
+          <td class="actions-cell">
+
+            <button
+              class="btn view"
+              (click)="toggleWeeks(emp)">
+              {{ expandedEmployee === emp ? 'Hide Weeks' : 'View Weeks' }}
+            </button>
+
+            <button
+              *ngIf="editingEmployee !== emp"
+              class="btn edit"
+              (click)="editEmployee(emp)">
+              Edit
+            </button>
+
+            <button
+              *ngIf="editingEmployee === emp"
+              class="btn save"
+              (click)="saveEmployee()">
+              Save
+            </button>
+
+            <button
+              *ngIf="editingEmployee === emp"
+              class="btn cancel"
+              (click)="cancelEdit()">
+              Cancel
+            </button>
+
+            <button
+              class="btn delete"
+              [disabled]="editingEmployee === emp"
+              (click)="deleteEmployee(emp)">
+              Delete
+            </button>
+
+          </td>
+        </tr>
+
+        <!-- WEEKLY EXPANDED ROW -->
+        <tr *ngIf="expandedEmployee === emp">
+          <td colspan="8">
+
+            <table class="week-table">
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>Date Range</th>
+                  <th>Total Working Days</th>
+                  <th>Worked Days</th>
+                  <th>Availability %</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let w of weeklyData">
+                  <td>Week {{ w.weekNumber }}</td>
+                  <td>{{ w.start }} – {{ w.end }}</td>
+                  <td>{{ w.totalWorkingDays }}</td>
+
+                  <!-- WEEK WORKED DAYS -->
+                  <td>
+                    <span *ngIf="editingWeek !== w.weekNumber">
+                      {{ w.workedDays }}
+                    </span>
+
+                    <input
+                      *ngIf="editingWeek === w.weekNumber"
+                      type="number"
+                      [min]="0"
+                      [max]="w.totalWorkingDays"
+                      [(ngModel)]="editedWeekDays">
+                  </td>
+
+                  <td>{{ w.availability }}%</td>
+
+                  <!-- WEEK ACTIONS -->
+                  <td>
+                    <button
+                      *ngIf="editingWeek !== w.weekNumber"
+                      class="btn edit"
+                      (click)="editWeek(w)">
+                      Edit
+                    </button>
+
+                    <button
+                      *ngIf="editingWeek === w.weekNumber"
+                      class="btn save"
+                      (click)="saveWeek(emp, w)">
+                      Save
+                    </button>
+
+                    <button
+                      *ngIf="editingWeek === w.weekNumber"
+                      class="btn cancel"
+                      (click)="cancelWeekEdit()">
+                      Cancel
+                    </button>
+                  </td>
+                </tr>
+
+                <tr *ngIf="weeklyData.length === 0">
+                  <td colspan="6" style="text-align:center">
+                    No weekly data available
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+          </td>
+        </tr>
+
+      </ng-container>
+
+    </tbody>
+  </table>
+
+  <!-- LOGOUT -->
+  <button class="logout-btn" (click)="logout()">Logout</button>
+
+</div>

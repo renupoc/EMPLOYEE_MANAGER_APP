@@ -38,6 +38,13 @@ export class AttendanceService {
       `${this.baseUrl}/admin/all`
     );
   }
+
+  getSelectedDates(employeeId: number, month: number, year: number) {
+  return this.http.get<string[]>(
+    `http://localhost:8080/api/attendance/employee/${employeeId}/days`,
+    { params: { month, year } }
+  );
+}
 }
 
 /* ===================================

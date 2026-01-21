@@ -1,9 +1,11 @@
 package com.example.attendance.dto;
+import java.util.List;
 
 public class AttendanceRequest {
 
     private int month;
     private int year;
+    
 
     // ✅ Total calendar days (28–31)
     private int totalDays;
@@ -13,6 +15,7 @@ public class AttendanceRequest {
 
     // ✅ Employee worked days
     private int workedDays;
+    private List<String> selectedDates;
 
     public int getMonth() {
         return month;
@@ -52,5 +55,14 @@ public class AttendanceRequest {
 
     public void setWorkedDays(int workedDays) {
         this.workedDays = workedDays;
+    }
+    // ✅ GETTER
+    public List<String> getSelectedDates() {
+        return selectedDates;
+    }
+
+    // ✅ SETTER
+    public void setSelectedDates(List<String> selectedDates) {
+        this.selectedDates = selectedDates;
     }
 }
